@@ -15,7 +15,7 @@ function getMadridDateParts() {
 }
 
 // Change this if you want a different month/year window:
-const ADVENT_MONTH = 12;     // December
+const ADVENT_MONTH = 10;     // December
 const ADVENT_YEAR  = new Date().getFullYear(); // e.g., 2025
 
 function isUnlockable(day) {
