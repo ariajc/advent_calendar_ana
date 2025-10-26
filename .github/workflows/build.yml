@@ -5,7 +5,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# Required for GitHub Pages
 permissions:
   contents: read
   pages: write
@@ -16,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-      # Fetch full history not needed; default shallow is fine
         uses: actions/checkout@v4
 
       - name: Set up Node
@@ -33,13 +31,13 @@ jobs:
           rm -rf public
           mkdir -p public/days
 
-      - name: Encrypt day pages with StatiCrypt
+      - name: Encrypt day pages with StatiCrypt (recursive)
         env:
           PASS: ${{ secrets.STATICRYPT_PASSWORD }}
         run: |
           set -e
-          # Encrypt the entire folder in one go; outputs to public/days
-          staticrypt raw_days -p "$PASS" -o "$PWD/public/days" --title "Enter Password" --short --no-popup
+          # Encrypt every file inside raw_days/ into public/days/
+          staticrypt raw_days -r -p "$PASS" -o "$PWD/public/days" --title "Enter Password" --short --no-popup
           echo "Encrypted files:"
           ls -la public/days
 
