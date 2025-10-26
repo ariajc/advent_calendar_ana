@@ -1,14 +1,22 @@
 name: Build & Encrypt Advent
+
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
+
+# Required for GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
+      # Fetch full history not needed; default shallow is fine
         uses: actions/checkout@v4
 
       - name: Set up Node
@@ -19,34 +27,44 @@ jobs:
       - name: Install StatiCrypt
         run: npm install -g staticrypt
 
-      - name: Prepare output dir
-        run: mkdir -p days
+      - name: Prepare public folder
+        run: |
+          set -e
+          rm -rf public
+          mkdir -p public/days
 
-      - name: Encrypt day pages
+      - name: Encrypt day pages with StatiCrypt
         env:
           PASS: ${{ secrets.STATICRYPT_PASSWORD }}
         run: |
-          for f in raw_days/*.html; do
-            base=$(basename "$f")
-            staticrypt "$f" "$PWD/days/$base" -p "$PASS" \
-              --title "Enter Password" \
-              --short --no-popup
-          done
+          set -e
+          # Encrypt the entire folder in one go; outputs to public/days
+          staticrypt raw_days -p "$PASS" -o "$PWD/public/days" --title "Enter Password" --short --no-popup
+          echo "Encrypted files:"
+          ls -la public/days
+
+      - name: Copy static assets (index + assets + optional CNAME)
+        run: |
+          set -e
+          cp -v index.html public/
+          if [ -d assets ]; then
+            mkdir -p public/assets
+            cp -R assets/ public/assets/
+          fi
+          # Uncomment if you use a custom domain:
+          # if [ -f CNAME ]; then cp -v CNAME public/; fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: ./public
 
   deploy:
     needs: build
-    permissions:
-      pages: write
-      id-token: write
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
