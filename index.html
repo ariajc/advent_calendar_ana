@@ -10,13 +10,14 @@
     * { box-sizing: border-box; }
     body { margin: 0; background: #faf8f5; color: #222; }
     .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-    .today { margin: .5rem 0 1rem; color: #555; font-size: .95rem; }
+    h1 { margin: 0 0 .5rem; }
+    .today { margin: .25rem 0 1rem; color: #555; font-size: .95rem; }
     .grid { display: grid; grid-template-columns: repeat(6, minmax(110px, 1fr)); gap: 12px; }
     .tile {
-      display: flex; align-items: center; justify-content: center;
+      display: flex; align-items: center; justify-content: center; text-align: center;
       min-height: 90px; border-radius: 12px; text-decoration: none;
       border: 1px solid #e5e5e5; background: #fff; transition: transform .08s ease;
-      text-align: center; padding: 12px;
+      padding: 12px;
     }
     .tile.unlocked { font-weight: 700; }
     .tile.unlocked:hover { transform: translateY(-2px); }
@@ -30,24 +31,47 @@
     <h1>🎄 Advent Calendar</h1>
     <p>Come back each day to unlock a new surprise.</p>
 
-    <!-- Today’s date/time (Europe/Madrid) appears here -->
+    <!-- Today's date/time (Europe/Madrid) -->
     <div id="today" class="today" aria-live="polite"></div>
 
-    <!-- Calendar tiles render here -->
+    <!-- Calendar tiles -->
     <div id="grid" class="grid" aria-live="polite"></div>
 
-    <p class="small">Unlocks use Europe/Madrid time.</p>
+    <p class="small">Unlocks use Europe/Madrid time. Encrypted pages live under <code>days/</code>.</p>
   </main>
 
   <script>
-    // ---------- CONFIG ----------
-    const MADRID_TZ = "Europe/Madrid";
-    const ADVENT_YEAR = 2025;   // <-- set your year here
-    const ADVENT_MONTH = 10;    // December
-    const ADVENT_DAYS = 24;     // 1..24
-    // ----------------------------
+    // ======== CONFIG ========
+    const MADRID_TZ    = "Europe/Madrid";
+    const ADVENT_YEAR  = 2025; // <-- set your advent year
+    const ADVENT_MONTH = 12;   // 12 = December
+    const ADVENT_DAYS  = 24;   // 1..24
+    // ========================
+
+    // Optional testing via URL query (e.g., ?year=2025&month=12&day=5)
+    const q = new URLSearchParams(location.search);
+    const testOverride = {
+      year:  q.get("year")  ? Number(q.get("year"))  : null,
+      month: q.get("month") ? Number(q.get("month")) : null,
+      day:   q.get("day")   ? Number(q.get("day"))   : null
+    };
 
     function getMadridDateParts() {
+      if (testOverride.year && testOverride.month && testOverride.day) {
+        // Build a Date in Madrid time by formatting a UTC date to that TZ label
+        // (For display we still format using Intl with timeZone)
+        const fake = new Date(Date.UTC(testOverride.year, testOverride.month - 1, testOverride.day, 12, 0, 0));
+        return {
+          year:  testOverride.year,
+          month: testOverride.month,
+          day:   testOverride.day,
+          label: new Intl.DateTimeFormat("en-GB", {
+            timeZone: MADRID_TZ, dateStyle: "full", timeStyle: "medium"
+          }).format(fake),
+          isTest: true
+        };
+      }
+
       const now = new Date();
       const parts = new Intl.DateTimeFormat("en-GB", {
         timeZone: MADRID_TZ,
@@ -60,15 +84,16 @@
         day: Number(parts.day),
         label: new Intl.DateTimeFormat("en-GB", {
           timeZone: MADRID_TZ, dateStyle: "full", timeStyle: "medium"
-        }).format(now)
+        }).format(now),
+        isTest: false
       };
     }
 
     function isUnlocked(dayNum) {
       const { year, month, day } = getMadridDateParts();
-      if (year >= ADVENT_YEAR) return true;
+      if (year > ADVENT_YEAR) return true;
       if (year < ADVENT_YEAR) return false;
-      if (month >= ADVENT_MONTH) return true;
+      if (month > ADVENT_MONTH) return true;
       if (month < ADVENT_MONTH) return false;
       return day >= dayNum; // December of ADVENT_YEAR
     }
@@ -76,7 +101,8 @@
     function renderToday() {
       const el = document.getElementById("today");
       if (!el) return;
-      el.textContent = `Today (Europe/Madrid): ${getMadridDateParts().label}`;
+      const info = getMadridDateParts();
+      el.textContent = `Today (Europe/Madrid): ${info.label}` + (info.isTest ? " [test override]" : "");
     }
 
     function renderGrid() {
@@ -99,23 +125,19 @@
     }
 
     function scheduleMidnightReload() {
-      // Reload just after Madrid midnight so tiles update automatically
+      // Reload just after Madrid midnight so tiles update without a manual refresh
       const now = new Date();
       const madridNow = new Date(now.toLocaleString("en-US", { timeZone: MADRID_TZ }));
       const next = new Date(madridNow);
       next.setHours(24, 0, 2, 0); // 00:00:02 next day
       const msUntil = next - madridNow;
-      if (msUntil > 0 && msUntil < 48 * 3600 * 1000) {
-        setTimeout(() => location.reload(), msUntil);
-      }
+      if (msUntil > 0 && msUntil < 48 * 3600 * 1000) setTimeout(() => location.reload(), msUntil);
     }
 
     (function init() {
       renderToday();
       renderGrid();
       scheduleMidnightReload();
-
-      // Debug aid: log where the calendar thinks "now" is
       console.log("Madrid now:", getMadridDateParts());
     })();
   </script>

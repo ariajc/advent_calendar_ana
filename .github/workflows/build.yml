@@ -14,8 +14,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout site repo (this repo)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Checkout raw content (private repo)
+        uses: actions/checkout@v4
+        with:
+          # ⬇️ CHANGE THIS to your private repo that holds the raw HTML files
+          repository: ariajc/advent-raw
+          ref: main
+          token: ${{ secrets.RAW_REPO_TOKEN }}
+          path: raw_src
+          fetch-depth: 1
+
+      - name: Show trees (debug)
+        run: |
+          echo "== Site repo root =="
+          ls -la
+          echo "== raw_src =="
+          ls -la raw_src || true
+          echo "== raw_src/raw_days (expected) =="
+          ls -la raw_src/raw_days || true
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -31,26 +52,49 @@ jobs:
           rm -rf public
           mkdir -p public/days
 
-      - name: Encrypt day pages with StatiCrypt (recursive)
+      - name: Encrypt HTML day pages (flat output)
         env:
           PASS: ${{ secrets.STATICRYPT_PASSWORD }}
         run: |
           set -e
-          # Encrypt every file inside raw_days/ into public/days/
-          staticrypt raw_days -r -p "$PASS" -o "$PWD/public/days" --title "Enter Password" --short --no-popup
-          echo "Encrypted files:"
+          shopt -s nullglob
+
+          # Support raw folder named either raw_days/ or raw-days/ in the private repo
+          if [ -d "raw_src/raw_days" ]; then
+            INPUT_DIR="raw_src/raw_days"
+          else
+            echo "::error::Couldn't find raw_src/raw_days from the private repo."
+            exit 1
+          fi
+
+          COUNT=$(ls "$INPUT_DIR"/*.html 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$COUNT" = "0" ]; then
+            echo "::error::No .html files found in $INPUT_DIR. Add day-01.html etc."
+            exit 1
+          fi
+
+          # Encrypt each file into a flat public/days/ folder
+          for f in "$INPUT_DIR"/*.html; do
+            staticrypt "$f" -p "$PASS" -o "$PWD/public/days" --title "Enter Password" --short --no-popup
+          done
+
+          echo "== Encrypted output (public/days) =="
           ls -la public/days
 
       - name: Copy static assets (index + assets + optional CNAME)
         run: |
           set -e
+          if [ ! -f index.html ]; then
+            echo "::error::index.html not found at site repo root."
+            exit 1
+          fi
           cp -v index.html public/
           if [ -d assets ]; then
             mkdir -p public/assets
             cp -R assets/ public/assets/
           fi
-          # Uncomment if you use a custom domain:
-          # if [ -f CNAME ]; then cp -v CNAME public/; fi
+          # If you use a custom domain:
+          # [ -f CNAME ] && cp -v CNAME public/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
