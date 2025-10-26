@@ -52,17 +52,15 @@ jobs:
           rm -rf public
           mkdir -p public/days
 
-      - name: Encrypt HTML day pages (per-file → named outputs, strict checks)
+      - name: Encrypt HTML day pages (per-file → explicit output filenames)
         env:
           PASS: ${{ secrets.STATICRYPT_PASSWORD }}
         run: |
           set -euo pipefail
           shopt -s nullglob
 
-          # 0) Sanity checks
           if [ -z "${PASS:-}" ]; then
             echo "::error::STATICRYPT_PASSWORD (secret) is empty or not set."
-            echo "Set it in Settings → Secrets and variables → Actions → New repository secret."
             exit 1
           fi
 
@@ -76,17 +74,16 @@ jobs:
           echo "== Source HTML files =="
           ls -1 "$SRC_DIR"/*.html
 
-          # 1) Encrypt each file to an explicit output filename
           for f in "$SRC_DIR"/*.html; do
-            base="$(basename "$f")"              # e.g., day-01.html
-            OUT_FILE="$OUT_DIR/$base"            # e.g., public/days/day-01.html
-            echo "Encrypt → $OUT_FILE"
-            staticrypt "$f" -p "$PASS" -o "$OUT_FILE" --title "Enter Password" --short --no-popup
+            base="$(basename "$f")"                 # e.g., day-01.html
+            out="$OUT_DIR/$base"                    # e.g., public/days/day-01.html
+            echo "Encrypt → $out"
+            # NOTE: for single-file input, pass OUTPUT FILE as 2nd positional arg (no -o dir)
+            staticrypt "$f" "$out" -p "$PASS" --title "Enter Password" --short --no-popup
 
-            # 2) Verify the output file exists and is non-empty
-            if [ ! -s "$OUT_FILE" ]; then
-              echo "::error::StatiCrypt did not create $OUT_FILE (or file is empty)."
-              echo "Check the lines above for any StatiCrypt output. Is the password set?"
+            # verify the file now exists and is non-empty
+            if [ ! -s "$out" ]; then
+              echo "::error::StatiCrypt did not create $out (or file is empty)."
               exit 1
             fi
           done
