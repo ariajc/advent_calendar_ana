@@ -67,14 +67,13 @@ jobs:
           SRC_DIR="raw_src/raw_days"
           OUT_DIR="$PWD/public/days"
 
-          # Stage inputs into a temp dir (flat)
+          # Stage inputs into a flat temp dir
           STAGE="$(mktemp -d)"
           mkdir -p "$OUT_DIR"
 
           echo "== Stage source files =="
           ls -1 "$SRC_DIR"/*.html
 
-          # Copy *.html into the staging dir with their basenames
           for f in "$SRC_DIR"/*.html; do
             cp -v "$f" "$STAGE/$(basename "$f")"
           done
@@ -82,13 +81,13 @@ jobs:
           echo "Staticrypt version: $(staticrypt --version || true)"
           echo "Encrypt folder: $STAGE  →  $OUT_DIR"
 
-          # Folder mode: recursive encrypt, write to output directory
-          staticrypt "$STAGE" -r -p "$PASS" -o "$OUT_DIR" --title "Enter Password" --short --no-popup
+          # ✅ Folder mode: recursive encrypt, write to output directory (use -d, not -o)
+          staticrypt "$STAGE" -r -p "$PASS" -d "$OUT_DIR" --title "Enter Password" --short --no-popup --config false
 
           echo "== Encrypted output (public/days) =="
           ls -la "$OUT_DIR"
 
-          # Quick sanity: insist at least one file exists
+          # Sanity check
           if [ "$(find "$OUT_DIR" -maxdepth 1 -type f -name '*.html' | wc -l | tr -d ' ')" -eq 0 ]; then
             echo "::error::No encrypted files were produced in $OUT_DIR."
             exit 1
