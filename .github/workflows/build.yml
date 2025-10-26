@@ -14,15 +14,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout site repo (this repo)
+      # This repo (public site: adevent_calendar_ana)
+      - name: Checkout site repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
+      # Private raw repo (advent_raw) -> raw_src/
       - name: Checkout raw content (private repo)
         uses: actions/checkout@v4
         with:
-          # ⬇️ CHANGE THIS to your private repo that holds the raw HTML files
+          # ⬇️ Change owner if needed (org/user)
           repository: ariajc/advent_raw
           ref: main
           token: ${{ secrets.RAW_REPO_TOKEN }}
@@ -31,10 +33,8 @@ jobs:
 
       - name: Show trees (debug)
         run: |
-          echo "== Site repo root =="
+          echo "== Repo root =="
           ls -la
-          echo "== raw_src =="
-          ls -la raw_src || true
           echo "== raw_src/raw_days (expected) =="
           ls -la raw_src/raw_days || true
 
@@ -56,36 +56,36 @@ jobs:
         env:
           PASS: ${{ secrets.STATICRYPT_PASSWORD }}
         run: |
-          set -e
+          set -euo pipefail
           shopt -s nullglob
+          SRC_DIR="raw_src/raw_days"
+          OUT_DIR="$PWD/public/days"
 
-          # Support raw folder named either raw_days/ or raw-days/ in the private repo
-          if [ -d "raw_src/raw_days" ]; then
-            INPUT_DIR="raw_src/raw_days"
-          else
-            echo "::error::Couldn't find raw_src/raw_days from the private repo."
+          if [ ! -d "$SRC_DIR" ]; then
+            echo "::error::Expected $SRC_DIR with .html files"
             exit 1
           fi
 
-          COUNT=$(ls "$INPUT_DIR"/*.html 2>/dev/null | wc -l | tr -d ' ')
-          if [ "$COUNT" = "0" ]; then
-            echo "::error::No .html files found in $INPUT_DIR. Add day-01.html etc."
+          mapfile -d '' SRC_FILES < <(find "$SRC_DIR" -maxdepth 1 -type f -name '*.html' -print0)
+          if [ "${#SRC_FILES[@]}" -eq 0 ]; then
+            echo "::error::No .html files found in $SRC_DIR"
             exit 1
           fi
 
-          # Encrypt each file into a flat public/days/ folder
-          for f in "$INPUT_DIR"/*.html; do
-            staticrypt "$f" -p "$PASS" -o "$PWD/public/days" --title "Enter Password" --short --no-popup
+          echo "Encrypting ${#SRC_FILES[@]} file(s) → $OUT_DIR"
+          for f in "${SRC_FILES[@]}"; do
+            echo "→ $f"
+            staticrypt "$f" -p "$PASS" -o "$OUT_DIR" --title "Enter Password" --short --no-popup
           done
 
           echo "== Encrypted output (public/days) =="
-          ls -la public/days
+          ls -la "$OUT_DIR"
 
       - name: Copy static assets (index + assets + optional CNAME)
         run: |
           set -e
           if [ ! -f index.html ]; then
-            echo "::error::index.html not found at site repo root."
+            echo "::error::index.html not found at repo root."
             exit 1
           fi
           cp -v index.html public/
@@ -93,10 +93,10 @@ jobs:
             mkdir -p public/assets
             cp -R assets/ public/assets/
           fi
-          # If you use a custom domain:
+          # Optional custom domain:
           # [ -f CNAME ] && cp -v CNAME public/
 
-      - name: Upload Pages artifact
+      - name: Upload Pages artifact (deploy public/)
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./public
@@ -111,3 +111,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
