@@ -52,7 +52,7 @@ jobs:
           rm -rf public
           mkdir -p public/days
 
-      - name: Encrypt HTML day pages (per-file → explicit output filenames)
+      - name: Encrypt HTML day pages (folder mode → public/days)
         env:
           PASS: ${{ secrets.STATICRYPT_PASSWORD }}
         run: |
@@ -64,32 +64,36 @@ jobs:
             exit 1
           fi
 
-          echo "Using StatiCrypt at: $(command -v staticrypt || true)"
-          staticrypt --version || true
-
           SRC_DIR="raw_src/raw_days"
           OUT_DIR="$PWD/public/days"
+
+          # Stage inputs into a temp dir (flat)
+          STAGE="$(mktemp -d)"
           mkdir -p "$OUT_DIR"
 
-          echo "== Source HTML files =="
+          echo "== Stage source files =="
           ls -1 "$SRC_DIR"/*.html
 
+          # Copy *.html into the staging dir with their basenames
           for f in "$SRC_DIR"/*.html; do
-            base="$(basename "$f")"                 # e.g., day-01.html
-            out="$OUT_DIR/$base"                    # e.g., public/days/day-01.html
-            echo "Encrypt → $out"
-            # NOTE: for single-file input, pass OUTPUT FILE as 2nd positional arg (no -o dir)
-            staticrypt "$f" "$out" -p "$PASS" --title "Enter Password" --short --no-popup
-
-            # verify the file now exists and is non-empty
-            if [ ! -s "$out" ]; then
-              echo "::error::StatiCrypt did not create $out (or file is empty)."
-              exit 1
-            fi
+            cp -v "$f" "$STAGE/$(basename "$f")"
           done
+
+          echo "Staticrypt version: $(staticrypt --version || true)"
+          echo "Encrypt folder: $STAGE  →  $OUT_DIR"
+
+          # Folder mode: recursive encrypt, write to output directory
+          staticrypt "$STAGE" -r -p "$PASS" -o "$OUT_DIR" --title "Enter Password" --short --no-popup
 
           echo "== Encrypted output (public/days) =="
           ls -la "$OUT_DIR"
+
+          # Quick sanity: insist at least one file exists
+          if [ "$(find "$OUT_DIR" -maxdepth 1 -type f -name '*.html' | wc -l | tr -d ' ')" -eq 0 ]; then
+            echo "::error::No encrypted files were produced in $OUT_DIR."
+            exit 1
+          fi
+
 
       - name: Copy static assets (index + assets + optional CNAME)
         run: |
