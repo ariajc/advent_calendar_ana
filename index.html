@@ -5,20 +5,119 @@
   <meta http-equiv="Cache-Control" content="no-store" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>🎄 Advent Calendar</title>
-  <link rel="stylesheet" href="assets/style.css" />
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #faf8f5; color: #222; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    .today { margin: .5rem 0 1rem; color: #555; font-size: .95rem; }
+    .grid { display: grid; grid-template-columns: repeat(6, minmax(110px, 1fr)); gap: 12px; }
+    .tile {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 90px; border-radius: 12px; text-decoration: none;
+      border: 1px solid #e5e5e5; background: #fff; transition: transform .08s ease;
+      text-align: center; padding: 12px;
+    }
+    .tile.unlocked { font-weight: 700; }
+    .tile.unlocked:hover { transform: translateY(-2px); }
+    .tile.locked { opacity: .55; cursor: not-allowed; }
+    .tile.locked .lock { font-size: 0.95rem; margin-top: .25rem; color: #666; }
+    .small { color: #666; font-size: 0.9rem; margin-top: 1rem; }
+  </style>
 </head>
 <body>
   <main class="container">
     <h1>🎄 Advent Calendar</h1>
     <p>Come back each day to unlock a new surprise.</p>
 
-    <!-- 👇 This is where today's date/time will show -->
+    <!-- Today’s date/time (Europe/Madrid) appears here -->
     <div id="today" class="today" aria-live="polite"></div>
 
+    <!-- Calendar tiles render here -->
     <div id="grid" class="grid" aria-live="polite"></div>
+
     <p class="small">Unlocks use Europe/Madrid time.</p>
   </main>
 
-  <script src="assets/main.js"></script>
+  <script>
+    // ---------- CONFIG ----------
+    const MADRID_TZ = "Europe/Madrid";
+    const ADVENT_YEAR = 2025;   // <-- set your year here
+    const ADVENT_MONTH = 10;    // December
+    const ADVENT_DAYS = 24;     // 1..24
+    // ----------------------------
+
+    function getMadridDateParts() {
+      const now = new Date();
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: MADRID_TZ,
+        year: "numeric", month: "numeric", day: "numeric",
+        hour: "numeric", minute: "numeric", second: "numeric"
+      }).formatToParts(now).reduce((acc, p) => (acc[p.type] = p.value, acc), {});
+      return {
+        year: Number(parts.year),
+        month: Number(parts.month),
+        day: Number(parts.day),
+        label: new Intl.DateTimeFormat("en-GB", {
+          timeZone: MADRID_TZ, dateStyle: "full", timeStyle: "medium"
+        }).format(now)
+      };
+    }
+
+    function isUnlocked(dayNum) {
+      const { year, month, day } = getMadridDateParts();
+      if (year >= ADVENT_YEAR) return true;
+      if (year < ADVENT_YEAR) return false;
+      if (month >= ADVENT_MONTH) return true;
+      if (month < ADVENT_MONTH) return false;
+      return day >= dayNum; // December of ADVENT_YEAR
+    }
+
+    function renderToday() {
+      const el = document.getElementById("today");
+      if (!el) return;
+      el.textContent = `Today (Europe/Madrid): ${getMadridDateParts().label}`;
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+      for (let d = 1; d <= ADVENT_DAYS; d++) {
+        const unlocked = isUnlocked(d);
+        const el = document.createElement(unlocked ? "a" : "div");
+        el.className = `tile ${unlocked ? "unlocked" : "locked"}`;
+        el.setAttribute("aria-label", `Day ${d}`);
+
+        if (unlocked) {
+          el.href = `days/day-${String(d).padStart(2, "0")}.html`;
+          el.innerHTML = `<div><div>Day ${d}</div><div style="font-size:.9rem;">Open ➜</div></div>`;
+        } else {
+          el.innerHTML = `<div><div>Day ${d}</div><div class="lock">🔒 Locked</div></div>`;
+        }
+        grid.appendChild(el);
+      }
+    }
+
+    function scheduleMidnightReload() {
+      // Reload just after Madrid midnight so tiles update automatically
+      const now = new Date();
+      const madridNow = new Date(now.toLocaleString("en-US", { timeZone: MADRID_TZ }));
+      const next = new Date(madridNow);
+      next.setHours(24, 0, 2, 0); // 00:00:02 next day
+      const msUntil = next - madridNow;
+      if (msUntil > 0 && msUntil < 48 * 3600 * 1000) {
+        setTimeout(() => location.reload(), msUntil);
+      }
+    }
+
+    (function init() {
+      renderToday();
+      renderGrid();
+      scheduleMidnightReload();
+
+      // Debug aid: log where the calendar thinks "now" is
+      console.log("Madrid now:", getMadridDateParts());
+    })();
+  </script>
 </body>
 </html>
