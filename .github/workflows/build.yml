@@ -52,7 +52,7 @@ jobs:
           rm -rf public
           mkdir -p public/days
 
-      - name: Encrypt HTML day pages (folder mode → public/days)
+      - name: Encrypt HTML day pages (folder mode → public/days, then flatten)
         env:
           PASS: ${{ secrets.STATICRYPT_PASSWORD }}
         run: |
@@ -67,13 +67,12 @@ jobs:
           SRC_DIR="raw_src/raw_days"
           OUT_DIR="$PWD/public/days"
 
-          # Stage inputs into a flat temp dir
+          # Stage inputs into a flat temp dir so names are preserved
           STAGE="$(mktemp -d)"
           mkdir -p "$OUT_DIR"
 
           echo "== Stage source files =="
           ls -1 "$SRC_DIR"/*.html
-
           for f in "$SRC_DIR"/*.html; do
             cp -v "$f" "$STAGE/$(basename "$f")"
           done
@@ -81,13 +80,29 @@ jobs:
           echo "Staticrypt version: $(staticrypt --version || true)"
           echo "Encrypt folder: $STAGE  →  $OUT_DIR"
 
-          # ✅ Folder mode: recursive encrypt, write to output directory (use -d, not -o)
+          # Encrypt whole folder (v3 uses -d/--directory for output dir)
           staticrypt "$STAGE" -r -p "$PASS" -d "$OUT_DIR" --title "Enter Password" --short --no-popup --config false
 
-          echo "== Encrypted output (public/days) =="
+          echo "== Raw encrypted tree (may contain a subfolder) =="
+          find "$OUT_DIR" -maxdepth 2 -printf '%P\n' -type f -name '*.html' || true
+
+          # 🔧 FLATTEN: move all encrypted *.html from any subfolder up to OUT_DIR root
+          while IFS= read -r -d '' enc; do
+            base="$(basename "$enc")"
+            dest="$OUT_DIR/$base"
+            if [ "$enc" != "$dest" ]; then
+              mv -f "$enc" "$dest"
+              echo "→ Moved $(basename "$enc") to $dest"
+            fi
+          done < <(find "$OUT_DIR" -type f -name '*.html' -print0)
+
+          # Clean up any leftover subdirectories inside OUT_DIR
+          find "$OUT_DIR" -mindepth 1 -type d -exec rm -rf {} +
+
+          echo "== Encrypted output (flattened at public/days) =="
           ls -la "$OUT_DIR"
 
-          # Sanity check
+          # Sanity check: at least one file must exist
           if [ "$(find "$OUT_DIR" -maxdepth 1 -type f -name '*.html' | wc -l | tr -d ' ')" -eq 0 ]; then
             echo "::error::No encrypted files were produced in $OUT_DIR."
             exit 1
