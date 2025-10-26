@@ -24,6 +24,11 @@
     .tile.locked { opacity: .55; cursor: not-allowed; }
     .tile.locked .lock { font-size: 0.95rem; margin-top: .25rem; color: #666; }
     .small { color: #666; font-size: 0.9rem; margin-top: 1rem; }
+    .warn {
+      display:none; margin: 12px 0; padding: 10px 12px; border-radius: 8px;
+      background: #fff3cd; color: #664d03; border: 1px solid #ffe69c; font-size: .95rem;
+    }
+    code { background: #f1f1f1; padding: 0 .25rem; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -34,14 +39,24 @@
     <!-- Today's date/time (Europe/Madrid) -->
     <div id="today" class="today" aria-live="polite"></div>
 
+    <!-- Optional deploy check (only shows if days output is missing) -->
+    <div id="warn" class="warn">
+      Heads up: <code>days/day-01.html</code> isn’t reachable. If you’re using Option A, ensure your workflow:
+      <strong>encrypts into</strong> <code>public/days/</code> and <strong>deploys</strong> the <code>public/</code> folder.
+    </div>
+
     <!-- Calendar tiles -->
     <div id="grid" class="grid" aria-live="polite"></div>
 
-    <p class="small">Unlocks use Europe/Madrid time. Encrypted pages live under <code>days/</code>.</p>
+    <p class="small">
+      Unlocks use Europe/Madrid time. Encrypted pages are built to
+      <code>public/days/</code> (served here as <code>days/</code>).
+    </p>
   </main>
 
   <script>
-    // ======== CONFIG ========
+    // ======== CONFIG (Option A) ========
+    // Your workflow builds encrypted pages into public/days/, which are served here as days/.
     const MADRID_TZ    = "Europe/Madrid";
     const ADVENT_YEAR  = 2025; // <-- set your advent year
     const ADVENT_MONTH = 12;   // 12 = December
@@ -58,8 +73,6 @@
 
     function getMadridDateParts() {
       if (testOverride.year && testOverride.month && testOverride.day) {
-        // Build a Date in Madrid time by formatting a UTC date to that TZ label
-        // (For display we still format using Intl with timeZone)
         const fake = new Date(Date.UTC(testOverride.year, testOverride.month - 1, testOverride.day, 12, 0, 0));
         return {
           year:  testOverride.year,
@@ -134,12 +147,25 @@
       if (msUntil > 0 && msUntil < 48 * 3600 * 1000) setTimeout(() => location.reload(), msUntil);
     }
 
+    async function checkDaysOutputExists() {
+      // Helpful warning if the built artifact (public/days/) wasn't deployed
+      try {
+        const res = await fetch("days/day-01.html", { method: "HEAD", cache: "no-store" });
+        if (!res.ok) throw new Error(String(res.status));
+      } catch (e) {
+        const w = document.getElementById("warn");
+        if (w) w.style.display = "block";
+      }
+    }
+
     (function init() {
       renderToday();
       renderGrid();
       scheduleMidnightReload();
+      checkDaysOutputExists(); // Option A health check
       console.log("Madrid now:", getMadridDateParts());
     })();
   </script>
 </body>
 </html>
+
