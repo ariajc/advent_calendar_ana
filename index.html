@@ -2,17 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Advent Calendar</title>
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🎄 Advent Calendar</title>
   <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
   <main class="container">
     <h1>🎄 Advent Calendar</h1>
     <p>Come back each day to unlock a new surprise.</p>
-    <div id="grid" class="grid"></div>
-    <p class="small">Times use Europe/Madrid (CET/CEST).</p>
+
+    <!-- 👇 This is where today's date/time will show -->
+    <div id="today" class="today" aria-live="polite"></div>
+
+    <div id="grid" class="grid" aria-live="polite"></div>
+    <p class="small">Unlocks use Europe/Madrid time.</p>
   </main>
+
   <script src="assets/main.js"></script>
 </body>
 </html>
