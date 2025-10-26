@@ -52,25 +52,43 @@ jobs:
           rm -rf public
           mkdir -p public/days
 
-      - name: Encrypt HTML day pages (per-file → named outputs)
+      - name: Encrypt HTML day pages (per-file → named outputs, strict checks)
         env:
           PASS: ${{ secrets.STATICRYPT_PASSWORD }}
         run: |
           set -euo pipefail
           shopt -s nullglob
+
+          # 0) Sanity checks
+          if [ -z "${PASS:-}" ]; then
+            echo "::error::STATICRYPT_PASSWORD (secret) is empty or not set."
+            echo "Set it in Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+
+          echo "Using StatiCrypt at: $(command -v staticrypt || true)"
+          staticrypt --version || true
+
           SRC_DIR="raw_src/raw_days"
           OUT_DIR="$PWD/public/days"
-
           mkdir -p "$OUT_DIR"
 
           echo "== Source HTML files =="
           ls -1 "$SRC_DIR"/*.html
 
+          # 1) Encrypt each file to an explicit output filename
           for f in "$SRC_DIR"/*.html; do
-            base="$(basename "$f")"             # e.g., day-01.html
-            OUT_FILE="$OUT_DIR/$base"           # e.g., public/days/day-01.html
+            base="$(basename "$f")"              # e.g., day-01.html
+            OUT_FILE="$OUT_DIR/$base"            # e.g., public/days/day-01.html
             echo "Encrypt → $OUT_FILE"
             staticrypt "$f" -p "$PASS" -o "$OUT_FILE" --title "Enter Password" --short --no-popup
+
+            # 2) Verify the output file exists and is non-empty
+            if [ ! -s "$OUT_FILE" ]; then
+              echo "::error::StatiCrypt did not create $OUT_FILE (or file is empty)."
+              echo "Check the lines above for any StatiCrypt output. Is the password set?"
+              exit 1
+            fi
           done
 
           echo "== Encrypted output (public/days) =="
