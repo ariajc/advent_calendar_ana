@@ -52,7 +52,7 @@ jobs:
           rm -rf public
           mkdir -p public/days
 
-      - name: Encrypt HTML day pages (flat output)
+      - name: Encrypt HTML day pages (per-file → named outputs)
         env:
           PASS: ${{ secrets.STATICRYPT_PASSWORD }}
         run: |
@@ -61,21 +61,16 @@ jobs:
           SRC_DIR="raw_src/raw_days"
           OUT_DIR="$PWD/public/days"
 
-          if [ ! -d "$SRC_DIR" ]; then
-            echo "::error::Expected $SRC_DIR with .html files"
-            exit 1
-          fi
+          mkdir -p "$OUT_DIR"
 
-          mapfile -d '' SRC_FILES < <(find "$SRC_DIR" -maxdepth 1 -type f -name '*.html' -print0)
-          if [ "${#SRC_FILES[@]}" -eq 0 ]; then
-            echo "::error::No .html files found in $SRC_DIR"
-            exit 1
-          fi
+          echo "== Source HTML files =="
+          ls -1 "$SRC_DIR"/*.html
 
-          echo "Encrypting ${#SRC_FILES[@]} file(s) → $OUT_DIR"
-          for f in "${SRC_FILES[@]}"; do
-            echo "→ $f"
-            staticrypt "$f" -p "$PASS" -o "$OUT_DIR" --title "Enter Password" --short --no-popup
+          for f in "$SRC_DIR"/*.html; do
+            base="$(basename "$f")"             # e.g., day-01.html
+            OUT_FILE="$OUT_DIR/$base"           # e.g., public/days/day-01.html
+            echo "Encrypt → $OUT_FILE"
+            staticrypt "$f" -p "$PASS" -o "$OUT_FILE" --title "Enter Password" --short --no-popup
           done
 
           echo "== Encrypted output (public/days) =="
