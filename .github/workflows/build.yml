@@ -1,0 +1,53 @@
+name: Build & Encrypt Advent
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install StatiCrypt
+        run: npm install -g staticrypt
+
+      - name: Prepare output dir
+        run: mkdir -p days
+
+      - name: Encrypt day pages
+        env:
+          PASS: ${{ secrets.STATICRYPT_PASSWORD }}
+        run: |
+          for f in raw_days/*.html; do
+            base=$(basename "$f")
+            staticrypt "$f" "$PWD/days/$base" -p "$PASS" \
+              --title "Enter Password" \
+              --short --no-popup
+          done
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

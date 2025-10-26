@@ -1,0 +1,7 @@
+:root { font-family: system-ui, Arial, sans-serif; }
+.container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.tile { border: 1px solid #ddd; border-radius: 10px; padding: 18px; text-align: center; text-decoration: none; }
+.tile.locked { opacity: 0.5; pointer-events: none; }
+.tile.unlocked { font-weight: 700; }
+.small { color: #666; font-size: 0.9rem; margin-top: 1rem; }
