@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # This repo (public site: adevent_calendar_ana)
-      - name: Checkout site repo
+      - name: Checkout site repo (for workflow files)
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
@@ -37,14 +37,25 @@ jobs:
           ls -la
           echo "== raw_src/raw_days (expected) =="
           ls -la raw_src/raw_days || true
+          echo "== raw_src/raw_days/images (expected) =="
+          ls -la raw_src/raw_days/images || true
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install StatiCrypt
-        run: npm install -g staticrypt
+      - name: Install Staticrypt & JSDOM
+        run: |
+          npm install -g staticrypt
+          # JSDOM is required by the embed_images.js script to modify HTML
+          npm install jsdom
+
+      # 🔐 NEW STEP: Embed all images into the HTML files using Base64
+      # This ensures the image data is encrypted along with the HTML content.
+      - name: Embed Images (Base64) into Raw HTML
+        # The script will modify the HTML files directly in raw_src/raw_days/
+        run: node embed_images.js
 
       - name: Prepare public folder
         run: |
@@ -71,7 +82,7 @@ jobs:
           STAGE="$(mktemp -d)"
           mkdir -p "$OUT_DIR"
 
-          echo "== Stage source files =="
+          echo "== Stage source files (now with embedded Base64 images) =="
           ls -1 "$SRC_DIR"/*.html
           for f in "$SRC_DIR"/*.html; do
             cp -v "$f" "$STAGE/$(basename "$f")"
@@ -139,4 +150,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
