@@ -40,13 +40,14 @@ jobs:
           echo "== raw_src/images (expected) =="
           ls -la raw_src/images || true
 
-      # 🔍 NEW DEBUG STEP: Print the start of day1.html to confirm file version
+      # 🔍 DEBUG STEP: Print the start of day1.html to confirm file version
       - name: Debug: Show Day 1 HTML content
         run: |
           DAY_FILE="raw_src/raw_days/1.html"
           if [ -f "$DAY_FILE" ]; then
             echo "--- Content of $DAY_FILE (BEFORE EMBEDDING) ---"
-            head -n 1 "$DAY_FILE"
+            # Using head -n 25 to show enough context, including the CSS changes.
+            head -n 25 "$DAY_FILE"
             echo "------------------------------------------------"
           else
             echo "Day 1 HTML file not found at $DAY_FILE."
@@ -57,7 +58,7 @@ jobs:
         with:
           node-version: '20'
 
-      # ⚙️ UPDATED STEP: Install dependencies locally and add local binaries to PATH
+      # ⚙️ Install dependencies locally and add local binaries to PATH
       - name: Install Dependencies (Staticrypt & JSDOM)
         run: |
           # Install Staticrypt and JSDOM locally
