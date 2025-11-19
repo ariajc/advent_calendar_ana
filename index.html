@@ -187,25 +187,15 @@
 </head>
 <body>
   <main class="container">
-    <h1>🎄 Advent Calendar</h1>
+    <h1>🎄 Calendario de Adviento de los Monitos </h1>
     <p>Come back each day to unlock a new surprise.</p>
 
     <!-- Today's date/time (Europe/Madrid) -->
     <div id="today" class="today" aria-live="polite"></div>
 
-    <!-- Optional deploy check (only shows if days output is missing) -->
-    <div id="warn" class="warn">
-      Heads up: <code>days/day-01.html</code> isn’t reachable. If you’re using Option A, ensure your workflow:
-      <strong>encrypts into</strong> <code>public/days/</code> and <strong>deploys</strong> the <code>public/</code> folder.
-    </div>
-
     <!-- Calendar tiles -->
     <div id="grid" class="grid" aria-live="polite"></div>
-
-    <p class="small">
-      Unlocks use Europe/Madrid time. Encrypted pages are built to
-      <code>public/days/</code> (served here as <code>days/</code>).
-    </p>
+    
   </main>
 
   <script>
