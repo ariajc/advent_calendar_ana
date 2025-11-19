@@ -37,24 +37,36 @@ jobs:
           ls -la
           echo "== raw_src/raw_days (expected) =="
           ls -la raw_src/raw_days || true
-          echo "== raw_src/raw_days/images (expected) =="
-          ls -la raw_src/raw_days/images || true
+          echo "== raw_src/images (expected) =="
+          ls -la raw_src/images || true
+
+      # 🔍 NEW DEBUG STEP: Print the start of day1.html to confirm file version
+      - name: Debug: Show Day 1 HTML content
+        run: |
+          DAY_FILE="raw_src/raw_days/1.html"
+          if [ -f "$DAY_FILE" ]; then
+            echo "--- Content of $DAY_FILE (BEFORE EMBEDDING) ---"
+            head -n 1 "$DAY_FILE"
+            echo "------------------------------------------------"
+          else
+            echo "Day 1 HTML file not found at $DAY_FILE."
+          fi
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install Staticrypt & JSDOM
+      # ⚙️ UPDATED STEP: Install dependencies locally and add local binaries to PATH
+      - name: Install Dependencies (Staticrypt & JSDOM)
         run: |
-          npm install -g staticrypt
-          # JSDOM is required by the embed_images.js script to modify HTML
-          npm install jsdom
+          # Install Staticrypt and JSDOM locally
+          npm install staticrypt jsdom
+          # Add local node_modules binary path to ensure staticrypt is callable by name
+          echo "::add-path::$(npm bin)"
 
-      # 🔐 NEW STEP: Embed all images into the HTML files using Base64
-      # This ensures the image data is encrypted along with the HTML content.
+      # 🔐 Embed all images into the HTML files using Base64
       - name: Embed Images (Base64) into Raw HTML
-        # The script will modify the HTML files directly in raw_src/raw_days/
         run: node embed_images.js
 
       - name: Prepare public folder
@@ -63,6 +75,7 @@ jobs:
           rm -rf public
           mkdir -p public/days
 
+      # 🔑 Staticrypt is now callable because we added $(npm bin) to PATH
       - name: Encrypt HTML day pages (folder mode → public/days, then flatten)
         env:
           PASS: ${{ secrets.STATICRYPT_PASSWORD }}
