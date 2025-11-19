@@ -75,7 +75,27 @@
       padding-bottom: .5rem;
       border-bottom: 2px dashed rgba(0,0,0,.08);
     }
-    .today { margin: .5rem 0 2rem; color: var(--accent-brown); font-size: 1rem; font-weight: 600; }
+    .today { 
+      margin: .5rem 0 2rem; 
+      color: var(--accent-brown); 
+      font-size: 1rem; 
+      font-weight: 600;
+      display: flex; /* Added flex to align the badge */
+      align-items: center;
+    }
+    
+    /* New Style for the Test Override Flag */
+    .test-flag {
+      background: var(--christmas-green);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-left: 8px; /* Spacing from the date */
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 16px; }
 
     /* Tile Styling (Sealed Gift Look) */
@@ -270,7 +290,15 @@
       const el = document.getElementById("today");
       if (!el) return;
       const info = getMadridDateParts();
-      el.textContent = `Today (Europe/Madrid): ${info.label}` + (info.isTest ? " [test override]" : "");
+      
+      let content = `Today (Europe/Madrid): ${info.label}`;
+      if (info.isTest) {
+          // 💡 FIXED: Wrapping the override text in a span with a unique style
+          content += ` <span class="test-flag">[test override]</span>`; 
+      }
+      
+      // Using innerHTML now to render the span tag
+      el.innerHTML = content;
     }
 
     function scheduleMidnightReload() {
