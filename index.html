@@ -187,10 +187,10 @@
 </head>
 <body>
   <main class="container">
-    <h1>🎄 Calendario de Adviento de los Monitos </h1>
-    <p>Come back each day to unlock a new surprise.</p>
+    <h1>🎄 Calendario de Adviento de los Monitos 🙈</h1>
+    <p>Cada dia te espera una nueva sorpresita. JIJI.</p>
 
-    <!-- Today's date/time (Europe/Madrid) -->
+    <!-- Fecha de hoy-->
     <div id="today" class="today" aria-live="polite"></div>
 
     <!-- Calendar tiles -->
@@ -222,7 +222,7 @@
           year:  testOverride.year,
           month: testOverride.month,
           day:   testOverride.day,
-          label: new Intl.DateTimeFormat("en-GB", {
+          label: new Intl.DateTimeFormat("es-ES", {
             timeZone: MADRID_TZ, dateStyle: "full", timeStyle: "medium"
           }).format(fake),
           isTest: true
@@ -230,7 +230,7 @@
       }
 
       const now = new Date();
-      const parts = new Intl.DateTimeFormat("en-GB", {
+      const parts = new Intl.DateTimeFormat("es-ES", {
         timeZone: MADRID_TZ,
         year: "numeric", month: "numeric", day: "numeric",
         hour: "numeric", minute: "numeric", second: "numeric"
@@ -239,7 +239,7 @@
         year: Number(parts.year),
         month: Number(parts.month),
         day: Number(parts.day),
-        label: new Intl.DateTimeFormat("en-GB", {
+        label: new Intl.DateTimeFormat("es-ES", {
           timeZone: MADRID_TZ, dateStyle: "full", timeStyle: "medium"
         }).format(now),
         isTest: false
@@ -262,15 +262,15 @@
         const unlocked = isUnlocked(d);
         const el = document.createElement(unlocked ? "a" : "div");
         el.className = `tile ${unlocked ? "unlocked" : "locked"}`;
-        el.setAttribute("aria-label", `Day ${d}`);
+        el.setAttribute("aria-label", `Día ${d}`);
 
         if (unlocked) {
           // ⬅️ REVERTED: Using zero-padded day number for linking (e.g., day-01.html)
           const dayPadded = String(d).padStart(2, "0");
           el.href = `days/day-${dayPadded}.html`;
-          el.innerHTML = `<div><div>Day ${d}</div><div class="open">Open ➜</div></div>`;
+          el.innerHTML = `<div><div>Day ${d}</div><div class="open">Abierto ➜</div></div>`;
         } else {
-          el.innerHTML = `<div><div>Day ${d}</div><div class="lock">🔒 Sealed</div></div>`;
+          el.innerHTML = `<div><div>Day ${d}</div><div class="lock">🔒 Cerrado</div></div>`;
         }
         grid.appendChild(el);
       }
@@ -281,7 +281,7 @@
       if (!el) return;
       const info = getMadridDateParts();
       
-      let content = `Today (Europe/Madrid): ${info.label}`;
+      let content = `Hoy: ${info.label}`;
       if (info.isTest) {
           // 💡 FIXED: Wrapping the override text in a span with a unique style
           content += ` <span class="test-flag">[test override]</span>`; 
@@ -294,7 +294,7 @@
     function scheduleMidnightReload() {
       // Reload just after Madrid midnight so tiles update without a manual refresh
       const now = new Date();
-      const madridNow = new Date(now.toLocaleString("en-US", { timeZone: MADRID_TZ }));
+      const madridNow = new Date(now.toLocaleString("es-ES", { timeZone: MADRID_TZ }));
       const next = new Date(madridNow);
       next.setHours(24, 0, 2, 0); // 00:00:02 next day
       const msUntil = next - madridNow;
