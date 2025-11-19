@@ -175,7 +175,7 @@
 
     <!-- Optional deploy check (only shows if days output is missing) -->
     <div id="warn" class="warn">
-      Heads up: <code>days/day1.html</code> isn’t reachable. If you’re using Option A, ensure your workflow:
+      Heads up: <code>days/day-01.html</code> isn’t reachable. If you’re using Option A, ensure your workflow:
       <strong>encrypts into</strong> <code>public/days/</code> and <strong>deploys</strong> the <code>public/</code> folder.
     </div>
 
@@ -255,8 +255,9 @@
         el.setAttribute("aria-label", `Day ${d}`);
 
         if (unlocked) {
-          // 🔑 UPDATED LINK FORMAT: Now links to days/day1.html, days/day2.html, etc.
-          el.href = `days/day${d}.html`;
+          // ⬅️ REVERTED: Using zero-padded day number for linking (e.g., day-01.html)
+          const dayPadded = String(d).padStart(2, "0");
+          el.href = `days/day-${dayPadded}.html`;
           el.innerHTML = `<div><div>Day ${d}</div><div class="open">Open ➜</div></div>`;
         } else {
           el.innerHTML = `<div><div>Day ${d}</div><div class="lock">🔒 Sealed</div></div>`;
@@ -285,8 +286,8 @@
     async function checkDaysOutputExists() {
       // Helpful warning if the built artifact (public/days/) wasn't deployed
       try {
-        // 🔑 UPDATED FETCH CHECK: Check for the new filename day1.html
-        const res = await fetch("days/day1.html", { method: "HEAD", cache: "no-store" });
+        // ⬅️ REVERTED: Checking for the zero-padded filename (day-01.html)
+        const res = await fetch("days/day-01.html", { method: "HEAD", cache: "no-store" });
         if (!res.ok) throw new Error(String(res.status));
       } catch (e) {
         const w = document.getElementById("warn");
@@ -298,7 +299,7 @@
       renderToday();
       renderGrid();
       scheduleMidnightReload();
-      checkDaysOutputExists(); // Option A health check
+      checkDaysOutputExists(); 
       console.log("Madrid now:", getMadridDateParts());
     })();
   </script>
