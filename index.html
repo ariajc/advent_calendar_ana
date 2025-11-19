@@ -268,9 +268,9 @@
           // ⬅️ REVERTED: Using zero-padded day number for linking (e.g., day-01.html)
           const dayPadded = String(d).padStart(2, "0");
           el.href = `days/day-${dayPadded}.html`;
-          el.innerHTML = `<div><div>Day ${d}</div><div class="open">Abierto ➜</div></div>`;
+          el.innerHTML = `<div><div>Día ${d}</div><div class="open">Abierto ➜</div></div>`;
         } else {
-          el.innerHTML = `<div><div>Day ${d}</div><div class="lock">🔒 Cerrado</div></div>`;
+          el.innerHTML = `<div><div>Día ${d}</div><div class="lock">🔒 Cerrado</div></div>`;
         }
         grid.appendChild(el);
       }
