@@ -7,6 +7,7 @@ const { JSDOM } = require('jsdom');
 const RAW_DAYS_DIR = 'raw_src/raw_days';
 const RAW_IMAGES_DIR = 'raw_src/raw_days/images'; // Assuming images are here
 
+
 console.log('Starting image embedding...');
 
 // Get all raw HTML files
